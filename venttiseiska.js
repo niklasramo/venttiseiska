@@ -361,7 +361,6 @@ EXPLORE
 
     var listeners = this._listeners;
     var ret = [];
-    var isEventsUndefined = typeof events === 'boolean';
     var eventCount = 0;
 
     events = events || this.getEvents();
@@ -371,8 +370,9 @@ EXPLORE
       ++eventCount;
 
       var evListeners = listeners[event];
+      var evListenersLength = evListeners.length;
 
-      if (evListeners.length) {
+      if (evListenersLength) {
 
         if (!tags.length) {
 

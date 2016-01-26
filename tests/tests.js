@@ -1,7 +1,5 @@
 (function (Q) {
 
-  // Tests
-
   QUnit.config.reorder = false;
 
   QUnit.module('emitter');
@@ -268,21 +266,101 @@
 
   Q.test('should invoke the targeted listeners', function (assert) {
 
+    assert.expect(1);
+
+    var emitter = new Venttiseiska();
+    var listenerFn = function () {
+      assert.ok(true);
+    };
+
+    emitter.on('a', listenerFn);
+    emitter.emit('a');
+
   });
 
   Q.test('should pass arguments to the listener\'s callback', function (assert) {
 
+    assert.expect(10);
+
+    var emitter = new Venttiseiska();
+    var args = [[], {}, '', 'hello', 1, 0, true, false, undefined, null];
+    var listenerFn = function () {
+      Array.prototype.slice.call(arguments).forEach(function (val, i) {
+        assert.strictEqual(val, args[i]);
+      });
+    };
+
+    emitter.on('a', listenerFn);
+    emitter.emit('a', args);
+
   });
 
-  Q.test('should pass context to the listener\'s callback', function (assert) {
+  Q.test('should temporarily force context to the listener\'s callback', function (assert) {
+
+    assert.expect(4);
+
+    var emitter = new Venttiseiska();
+    var listenerCtx = {};
+    var emitCtx = {};
+    var counter = 0;
+    var listenerFn = function () {
+      assert.strictEqual(this, counter < 2 ? emitCtx : counter === 2 ? window : listenerCtx);
+      ++counter;
+    };
+
+    emitter.on('a', listenerFn);
+    emitter.on('b', listenerFn, listenerCtx);
+    emitter.emit('a b', [], emitCtx);
+    emitter.emit('a b');
 
   });
 
   QUnit.module('emitter.getListeners()');
 
-  // TODO
+  Q.test('should return all listeners in bind order', function (assert) {
+
+    assert.expect(1);
+
+    var emitter = new Venttiseiska();
+    var expected = emitter.on('a b c a b c a b c', function () {});
+    var val = emitter.getListeners();
+
+    assert.deepEqual(val, expected);
+
+  });
+
+  Q.test('should return listeners of specific events (optionally filtered by tags) in bind order', function (assert) {
+
+    assert.expect(2);
+
+    var emitter = new Venttiseiska();
+    var listeners = emitter.on('a b:tagA c:tagA:tagB a b c:tagA a b c:tagB', function () {});
+    var expected = listeners.filter(function (item) {
+      return item._event === 'a' ||
+             (item._event === 'b' && item._tags[0] === 'tagA') ||
+             (item._event === 'c' && item._tags[0] === 'tagA' && item._tags[1] === 'tagB');
+    });
+
+    assert.deepEqual(emitter.getListeners('a b:tagA c:tagA:tagB'), expected);
+    assert.deepEqual(emitter.getListeners(['a', 'b:tagA' ,'c:tagA:tagB']), expected);
+
+  });
 
   QUnit.module('emitter.getEvents()');
+
+  Q.test('should return all events which have listeners', function (assert) {
+
+    assert.expect(2);
+
+    var emitter = new Venttiseiska();
+
+    emitter.on('a b c', function () {});
+    assert.deepEqual(emitter.getEvents(), ['a', 'b', 'c']);
+
+    emitter.off('a');
+    assert.deepEqual(emitter.getEvents(), ['b', 'c']);
+
+  });
 
   // TODO
 
