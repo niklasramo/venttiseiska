@@ -1,6 +1,6 @@
 /*!
  * @license
- * Venttiseiska v0.0.1
+ * Venttiseiska v0.1.0-beta
  * https://github.com/niklasramo/venttiseiska
  * Copyright (c) 2016 Niklas Rämö <inramo@gmail.com>
  * Released under the MIT license
@@ -10,30 +10,16 @@
 
 TODO
 ****
-- Add listener.isBound() method or listener._bound boolean flag.
-- Perf: allow passing "trusted" args for listener.emit() method so it can
-  skip the array cloning routine.
-- Perf: allow fetching listeners with emitter.getListeners() method without
-  sorting so inner methods can use it without a performance hit.
-- Perf: Use a hash map in tagsMatch helper function.
-- Unification: use emitter.getListeners() method in emitter.emit() method to
-  reduce the codebase size. Also consider using it for emitter.off() method.
-- Unit tests.
-- Perf testing.
-
-EXPLORE
-********
-- Explore ES6/ES7 language contructs to help make the code more performant.
-  E.g. making the listeners collection a Map/weakMap and event collection a
-  WeakSet/Set.
-- Should Event be a class with 'name' and 'listeners' props?
-- Allow providing multiple targets for emitter.off() method (a mixture of ids
-  and functions).
-- Targeting functions across events with emitter.off() method. In other words
-  allowing user to easily unbind all listeners which have the same callback
-  function.
-- "Freezing" a listener making it immune to unbinding.
-- Merging event collections.
+- Docs (inline and external).
+- Test and optimize performance:
+  * Allow passing "trusted" args for listener.emit() method so it can
+    skip the array cloning routine.
+  * Allow fetching listeners with emitter.getListeners() method without
+    sorting so inner methods can use it without a performance hit.
+  * Use a hash map in tagsMatch helper function.
+- Optimize codebase size:
+  * Use emitter.getListeners() method in emitter.emit() method to
+    reduce the codebase size. Also consider using it for emitter.off() method.
 
 */
 
@@ -74,7 +60,9 @@ EXPLORE
   var eventDelimiter = ' ';
   var tagDelimiter = ':';
   var vProto = Venttiseiska.prototype;
-  var Set = Set && Symbol && Set.prototype[Symbol.iterator] === Set.prototype.values && Set;
+  var NativeWeakSet = checkSupport(glob.WeakSet);
+  var NativeWeakMap = checkSupport(glob.WeakMap);
+  var priv = NativeWeakMap ? new NativeWeakMap : null;
 
   /**
    * Venttiseiska instance constructor.
@@ -90,7 +78,12 @@ EXPLORE
      * @protected
      * @type {Object}
      */
-    this._listeners = {};
+    if (NativeWeakMap) {
+      priv.set(this, {});
+    }
+    else {
+      this._listeners = {};
+    }
 
   }
 
@@ -167,15 +160,23 @@ EXPLORE
    */
   vProto.off = function (events, target) {
 
-    var instance = this;
-    var listeners = instance._listeners;
+    var listeners = NativeWeakMap ? priv.get(this) : this._listeners;
 
     // If no events are provided, let's remove all listeners from the instance.
     if (!events) {
 
       for (var i = 0, keys = Object.keys(listeners), len = keys.length; i < len; i++) {
 
-        listeners[keys[i]].length = 0;
+        var eventListeners = listeners[keys[i]];
+        var counter = eventListeners ? eventListeners.length : 0;
+
+        while (counter--) {
+
+          (NativeWeakMap ? priv.get(eventListeners[counter]) : eventListeners[counter])._bound = false;
+
+        }
+
+        eventListeners.length = 0;
 
       }
 
@@ -203,13 +204,14 @@ EXPLORE
 
             while (counter--) {
 
-              var listener = eventListeners[counter];
+              var listenerData = NativeWeakMap ? priv.get(eventListeners[counter]) : eventListeners[counter];
 
               // Make sure the listener's tags match the targeted tags (if
               // provided) and then make sure that the provided target (if
               // provided) matches the event's id or function.
-              if ((!hasTags || tagsMatch(eventTags, listener._tags)) && (!target || ((targetFn && target === listener._fn) || (targetId && target === listener._id)))) {
+              if ((!hasTags || tagsMatch(eventTags, listenerData._tags)) && (!target || ((targetFn && target === listenerData._fn) || (targetId && target === listenerData._id)))) {
 
+                listenerData._bound = false;
                 eventListeners.splice(counter, 1);
 
               }
@@ -221,6 +223,12 @@ EXPLORE
           // If no target or tags are defined, let's unbind all the event's
           // listeners.
           else {
+
+            while (counter--) {
+
+              (NativeWeakMap ? priv.get(eventListeners[counter]) : eventListeners[counter])._bound = false;
+
+            }
 
             eventListeners.length = 0;
 
@@ -245,8 +253,7 @@ EXPLORE
    */
   vProto.emit = function (events, args, context) {
 
-    var instance = this;
-    var listeners = instance._listeners;
+    var listeners = NativeWeakMap ? priv.get(this) : this._listeners;
     var hasContext = arguments.length > 1;
 
     forEachEvent(events, function (event, tags) {
@@ -260,8 +267,9 @@ EXPLORE
         for (var i = 0; i < evListenersLength; i++) {
 
           var listener = evListeners[i];
+          var listenerData = NativeWeakMap ? priv.get(listener) : listener;
 
-          if (!hasTags || tagsMatch(tags, listener._tags)) {
+          if (!hasTags || tagsMatch(tags, listenerData._tags)) {
 
             if (hasContext) {
               listener.emit(args, context);
@@ -281,45 +289,6 @@ EXPLORE
   };
 
   /**
-   * Disable events temporarily. The listeners are kept in the event collection
-   * but they won't be emitted until they are enabled.
-   *
-   * @public
-   * @memberof Venttiseiska.prototype
-   * @param {Array|String} [events]
-   */
-  vProto.disable = function (events) {
-
-    var listeners = this.getListeners(events);
-
-    for (var i = 0, len = listeners.length; i < len; i++) {
-
-      listeners[i].update({active: false});
-
-    }
-
-  };
-
-  /**
-   * Enbale events.
-   *
-   * @public
-   * @memberof Venttiseiska.prototype
-   * @param {Array|String} [events]
-   */
-  vProto.enable = function (events) {
-
-    var listeners = this.getListeners(events);
-
-    for (var i = 0, len = listeners.length; i < len; i++) {
-
-      listeners[i].update({active: true});
-
-    }
-
-  };
-
-  /**
    * Get all events in the instance which have listeners bound to them.
    *
    * @public
@@ -328,7 +297,7 @@ EXPLORE
    */
   vProto.getEvents = function () {
 
-    var listeners = this._listeners;
+    var listeners = NativeWeakMap ? priv.get(this) : this._listeners;
     var ret = [];
 
     for (var i = 0, keys = Object.keys(listeners), len = keys.length; i < len; i++) {
@@ -359,7 +328,7 @@ EXPLORE
    */
   vProto.getListeners = function (events) {
 
-    var listeners = this._listeners;
+    var listeners = NativeWeakMap ? priv.get(this) : this._listeners;
     var ret = [];
     var eventCount = 0;
 
@@ -384,8 +353,9 @@ EXPLORE
           for (var i = 0; i < evListenersLength; i++) {
 
             var listener = evListeners[i];
+            var listenerData = NativeWeakMap ? priv.get(listener) : listener;
 
-            if (tagsMatch(tags, listener._tags)) {
+            if (tagsMatch(tags, listenerData._tags)) {
 
               ret.push(listener);
 
@@ -420,26 +390,47 @@ EXPLORE
 
     // Allow providing a config object.
     if (!(emitter instanceof Venttiseiska)) {
+
       event = emitter.event;
       fn = emitter.fn;
       tags = emitter.tags;
       context = emitter.context;
       cycles = emitter.cycles;
       emitter = emitter.emitter;
+
     }
 
-    // Get emitter listeners.
-    var listeners = emitter._listeners;
-
     // Create instance data.
-    this._id = ++uid;
-    this._emitter = emitter;
-    this._event = event;
-    this._fn = fn;
-    this._tags = tags || [];
-    this._context = context;
-    this._cycles = cycles || 0;
-    this._active = true;
+    var instanceData = {
+      _id: ++uid,
+      _emitter: emitter,
+      _event: event,
+      _fn: fn,
+      _tags: (tags || []).concat(),
+      _context: context,
+      _cycles: cycles || 0,
+      _active: true,
+      _bound: true
+    };
+
+    // Set instance data.
+    if (NativeWeakMap) {
+
+      priv.set(this, instanceData);
+
+    }
+    else {
+
+      for (var i = 0, keys = Object.keys(instanceData), len = keys.length; i < len; i++) {
+
+        this[keys[i]] = instanceData[keys[i]];
+
+      }
+
+    }
+
+    // Get listeners.
+    var listeners = NativeWeakMap ? priv.get(emitter) : emitter._listeners;
 
     // Push instance to emitter's event listeners collection.
     (listeners[event] = listeners[event] || []).push(this);
@@ -455,7 +446,13 @@ EXPLORE
    */
   Venttiseiska.Listener.prototype.off = function () {
 
-    this._emitter.off(this._event, this._id);
+    var listenerData = NativeWeakMap ? priv.get(this) : this;
+
+    if (listenerData._bound) {
+
+      listenerData._emitter.off(listenerData._event, listenerData._id);
+
+    }
 
     return this;
 
@@ -472,11 +469,13 @@ EXPLORE
    */
   Venttiseiska.Listener.prototype.emit = function (args, context) {
 
-    if (this._active) {
+    var listenerData = NativeWeakMap ? priv.get(this) : this;
 
-      this._fn.apply(arguments.length > 1 ? context : this._context, Array.isArray(args) ? args.concat() : []);
+    if (listenerData._bound && listenerData._active) {
 
-      if (this._cycles && --this._cycles === 0) {
+      listenerData._fn.apply(arguments.length > 1 ? context : listenerData._context, Array.isArray(args) ? args.concat() : []);
+
+      if (listenerData._cycles && --listenerData._cycles === 0) {
 
         this.off();
 
@@ -503,16 +502,26 @@ EXPLORE
    */
   Venttiseiska.Listener.prototype.update = function (data) {
 
-    var props = ['fn', 'tags', 'context', 'cycles', 'active'];
+    if (data && isPlainObject(data)) {
 
-    for (var i = 0; i < 5; i++) {
+      var listenerData = NativeWeakMap ? priv.get(this) : this;
 
-      var prop = props[i];
+      if (listenerData._bound) {
 
-      // Update the value only if it has changed.
-      if (data.hasOwnProperty(prop) && data[prop] !== this['_' + prop]) {
+        var props = ['fn', 'tags', 'context', 'cycles', 'active'];
 
-        this['_' + prop] = data[prop];
+        for (var i = 0; i < 5; i++) {
+
+          var prop = props[i];
+
+          // Update the value only if it has changed.
+          if (data.hasOwnProperty(prop) && data[prop] !== listenerData['_' + prop]) {
+
+            listenerData['_' + prop] = data[prop];
+
+          }
+
+        }
 
       }
 
@@ -532,13 +541,18 @@ EXPLORE
    */
   Venttiseiska.Listener.prototype.inspect = function () {
 
+    var listenerData = NativeWeakMap ? priv.get(this) : this;
+
     return {
-      id: this._id,
-      event: this._event,
-      fn: this._fn,
-      tags: this._tags,
-      context: this._context,
-      cycles: this._cycles
+      id: listenerData._id,
+      emitter: listenerData._emitter,
+      event: listenerData._event,
+      fn: listenerData._fn,
+      tags: listenerData._tags.concat(),
+      context: listenerData._context,
+      cycles: listenerData._cycles,
+      active: listenerData._active,
+      bound: listenerData._bound
     };
 
   };
@@ -628,17 +642,17 @@ EXPLORE
   function uniqListeners(array) {
 
     var ret = [];
-    var hash = Set ? new Set : Object.create(null);
+    var hash = NativeWeakSet ? new NativeWeakSet : Object.create(null);
     var i = array.length;
 
-    if (Set) {
+    if (NativeWeakSet) {
 
       while (i--) {
 
-        if (!hash.has(array[i]._id)) {
+        if (!hash.has(array[i])) {
 
-          hash.add(array[i]._id);
-          ret[ret.length] = array[i];
+          hash.add(array[i]);
+          ret.push(array[i]);
 
         }
 
@@ -649,10 +663,13 @@ EXPLORE
 
       while (i--) {
 
-        if (!hash[array[i]._id]) {
+        var listener = array[i];
+        var id = NativeWeakMap ? priv.get(listener)._id : listener._id;
 
-          hash[array[i]._id] = 1;
-          ret.push(array[i]);
+        if (!hash[id]) {
+
+          hash[id] = 1;
+          ret.push(listener);
 
         }
 
@@ -674,19 +691,30 @@ EXPLORE
    */
   function compareListeners(a, b) {
 
-    if (a._id < b._id) {
+    var idA = NativeWeakMap ? priv.get(a)._id : a._id;
+    var idB = NativeWeakMap ? priv.get(b)._id : b._id;
+
+    if (idA < idB) {
 
       return -1;
 
     }
 
-    if (a._id > b._id) {
+    if (idA > idB) {
 
       return 1;
 
     }
 
     return 0;
+
+  }
+
+  function checkSupport(feature) {
+
+    var Symbol = glob.Symbol;
+
+    return feature && typeof Symbol === 'function' && typeof Symbol.toString === 'function' && Symbol(feature).toString().indexOf('[native code]') > -1 && feature;
 
   }
 

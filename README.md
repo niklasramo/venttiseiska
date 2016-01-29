@@ -151,8 +151,6 @@ Browser
 * [emitter.once( events, listener, [context] )](#emitteronce)
 * [emitter.off( [events], [target] )](#emitteroff)
 * [emitter.emit( events, [args], [context] )](#emitteremit)
-* [emitter.enable( events )](#emitterenable)
-* [emitter.disable( events )](#emitterdisable)
 * [emitter.getListeners( [events] )](#emittergetlisteners)
 * [emitter.getEvents()](#emittergetevents)
 
@@ -459,6 +457,8 @@ Returns an object that contains the listener's information.
 
 * **id** &nbsp;&mdash;&nbsp; *Number*
   * The listener's id. Also serves as an indicator of the execution/bind order.
+* **emitter** &nbsp;&mdash;&nbsp; *Venttiseiska*
+  * The emitter instance the listener is bound to.
 * **event** &nbsp;&mdash;&nbsp; *String*
   * The event's name the listener is bound to.
 * **fn** &nbsp;&mdash;&nbsp; *Function*
