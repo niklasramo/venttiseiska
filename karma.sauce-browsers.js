@@ -30,7 +30,7 @@ data = [
   ['OS X 10.8', 'safari', '6.0'],
   ['OS X 10.9', 'safari', '7.0'],
   ['OS X 10.10', 'safari', '8.0'],
-  ['OS X 10.11', 'safari', '8.1'],
+  ['OS X 10.11', 'safari', '9.0'],
   // Mobile - iOS
   ['OS X 10.10', 'iphone', '7.1'],
   ['OS X 10.10', 'iphone', '8.4'],
