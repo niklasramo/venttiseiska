@@ -28,6 +28,12 @@ gulp.task('validate', function () {
 
 });
 
+gulp.task('benchmark', function (done) {
+
+  require('./benchmarks/tests.js')(done);
+
+});
+
 gulp.task('compress', function() {
 
   return gulp
@@ -48,7 +54,15 @@ gulp.task('test-local', function (done) {
   (new karma.Server({
     configFile: __dirname + '/karma.local-conf.js',
     action: 'run'
-  }, done)).start();
+  }, function (exitCode) {
+    if (exitCode !== 0) {
+      console.log('Karma has exited with ' + exitCode);
+      process.exit(exitCode);
+    }
+    else {
+      done();
+    }
+  })).start();
 
 });
 
@@ -63,7 +77,15 @@ gulp.task('test-sauce', function (done) {
     opts.browsers = require('./karma.sauce-browsers.js').getBrowsers(argv.browsers);
   }
 
-  (new karma.Server(opts, done)).start();
+  (new karma.Server(opts, function (exitCode) {
+    if (exitCode !== 0) {
+      console.log('Karma has exited with ' + exitCode);
+      process.exit(exitCode);
+    }
+    else {
+      done();
+    }
+  })).start();
 
 });
 

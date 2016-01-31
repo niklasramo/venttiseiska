@@ -12,6 +12,8 @@ TODO
 ****
 - Docs (inline and external).
 - Test and optimize performance:
+  * Emitting should be considerably faster when apply is not used and the
+    forEachEvent is replaced with a basic for loop -> 10x increase in perf.
   * Allow passing "trusted" args for listener.emit() method so it can
     skip the array cloning routine.
   * Allow fetching listeners with emitter.getListeners() method without
@@ -256,26 +258,34 @@ TODO
     var listeners = NativeWeakMap ? priv.get(this) : this._listeners;
     var hasContext = arguments.length > 1;
 
-    forEachEvent(events, function (event, tags) {
+    events = parseEvents(events);
 
-      var evListeners = listeners[event];
-      var evListenersLength = evListeners && evListeners.length;
-      var hasTags = tags.length;
+    for (var i = 0, len = events.length; i < len; i++) {
 
-      if (evListenersLength) {
+      var tags = events[i].split(tagDelimiter);
+      var event = tags.shift();
 
-        for (var i = 0; i < evListenersLength; i++) {
+      if (event) {
 
-          var listener = evListeners[i];
-          var listenerData = NativeWeakMap ? priv.get(listener) : listener;
+        var evListeners = listeners[event];
+        var evListenersLength = evListeners && evListeners.length;
+        var hasTags = tags.length;
 
-          if (!hasTags || tagsMatch(tags, listenerData._tags)) {
+        if (evListenersLength) {
 
-            if (hasContext) {
-              listener.emit(args, context);
-            }
-            else {
-              listener.emit(args);
+          for (var ii = 0; ii < evListenersLength; ii++) {
+
+            var listener = evListeners[ii];
+
+            if (!hasTags || tagsMatch(tags, (NativeWeakMap ? priv.get(listener) : listener)._tags)) {
+
+              if (hasContext) {
+                listener.emit(args, context);
+              }
+              else {
+                listener.emit(args);
+              }
+
             }
 
           }
@@ -284,7 +294,7 @@ TODO
 
       }
 
-    });
+    }
 
   };
 
@@ -473,7 +483,33 @@ TODO
 
     if (listenerData._bound && listenerData._active) {
 
-      listenerData._fn.apply(arguments.length > 1 ? context : listenerData._context, Array.isArray(args) ? args.concat() : []);
+      var fn = listenerData._fn;
+      var ctx = arguments.length > 1 ? context : listenerData._context;
+      var argsLength = args ? args.length : 0;
+
+      if (ctx === void 0 && argsLength < 6) {
+
+        if (!argsLength) {
+
+          fn();
+
+        }
+        else {
+
+          argsLength == 1 ? fn(args[0]) :
+          argsLength == 2 ? fn(args[0], args[1]) :
+          argsLength == 3 ? fn(args[0], args[1], args[2]) :
+          argsLength == 4 ? fn(args[0], args[1], args[2], args[3]) :
+                            fn(args[0], args[1], args[2], args[3], args[4]);
+
+        }
+
+      }
+      else {
+
+        argsLength ? fn.apply(ctx, args.concat()) : fn.call(ctx);
+
+      }
 
       if (listenerData._cycles && --listenerData._cycles === 0) {
 
