@@ -13,7 +13,7 @@ module.exports = function (done) {
   var listenerEvent = 'a';
 
   // Setup listeners.
-  for (var i = 0; i < 1000; i++) {
+  for (var i = 0; i < 10; i++) {
     emitter217.on(listenerEvent, listenerFn);
     emitterDefault.on(listenerEvent, listenerFn);
   }
@@ -37,7 +37,7 @@ module.exports = function (done) {
   });
 
   testSuite.add({
-    name: 'Venttiseiska - Emit event with ten argument',
+    name: 'Venttiseiska - Emit event with ten arguments',
     fn: function () {
       emitter217.emit(listenerEvent, ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']);
     }
@@ -58,7 +58,7 @@ module.exports = function (done) {
   });
 
   testSuite.add({
-    name: 'Default - Emit event with ten argument',
+    name: 'Default - Emit event with ten arguments',
     fn: function () {
       emitterDefault.emit(listenerEvent, 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j');
     }

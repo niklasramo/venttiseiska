@@ -6,25 +6,6 @@
  * Released under the MIT license
  */
 
-/*
-
-TODO
-****
-- Docs (inline and external).
-- Test and optimize performance:
-  * Emitting should be considerably faster when apply is not used and the
-    forEachEvent is replaced with a basic for loop -> 10x increase in perf.
-  * Allow passing "trusted" args for listener.emit() method so it can
-    skip the array cloning routine.
-  * Allow fetching listeners with emitter.getListeners() method without
-    sorting so inner methods can use it without a performance hit.
-  * Use a hash map in tagsMatch helper function.
-- Optimize codebase size:
-  * Use emitter.getListeners() method in emitter.emit() method to
-    reduce the codebase size. Also consider using it for emitter.off() method.
-
-*/
-
 (function (glob, factory) {
 
   var libName = 'Venttiseiska';
@@ -114,12 +95,13 @@ TODO
       events = events.events;
     }
 
-    // Loop sanitize events and create new Listener instances.
-    forEachEvent(events, function (event, tags) {
+    events = parseEvents(events);
 
-      ret.push(new Venttiseiska.Listener(instance, event, listener, tags, context, cycles));
+    for (var i = 0, len = events.length; i < len; i++) {
 
-    });
+      ret.push(new Venttiseiska.Listener(instance, events[i][0], listener, events[i][1], context, cycles));
+
+    }
 
     return ret;
 
@@ -190,9 +172,13 @@ TODO
       var targetId = typeof target === 'number';
       var targetFn = typeof target === 'function';
 
-      forEachEvent(events, function (eventName, eventTags) {
+      events = parseEvents(events);
+
+      for (var i = 0, len = events.length; i < len; i++) {
 
         // Get event's data.
+        var eventName = events[i][0];
+        var eventTags = events[i][1];
         var eventListeners = listeners[eventName];
         var hasTags = eventTags.length;
         var counter = eventListeners ? eventListeners.length : 0;
@@ -238,7 +224,7 @@ TODO
 
         }
 
-      });
+      }
 
     }
 
@@ -256,36 +242,31 @@ TODO
   vProto.emit = function (events, args, context) {
 
     var listeners = NativeWeakMap ? priv.get(this) : this._listeners;
-    var hasContext = arguments.length > 1;
+    var hasContext = arguments.length > 2;
 
     events = parseEvents(events);
 
     for (var i = 0, len = events.length; i < len; i++) {
 
-      var tags = events[i].split(tagDelimiter);
-      var event = tags.shift();
+      var event = events[i][0];
+      var tags = events[i][1];
+      var evListeners = listeners[event];
+      var evListenersLength = evListeners && evListeners.length;
+      var hasTags = tags.length;
 
-      if (event) {
+      if (evListenersLength) {
 
-        var evListeners = listeners[event];
-        var evListenersLength = evListeners && evListeners.length;
-        var hasTags = tags.length;
+        for (var ii = 0; ii < evListenersLength; ii++) {
 
-        if (evListenersLength) {
+          var listener = evListeners[ii];
 
-          for (var ii = 0; ii < evListenersLength; ii++) {
+          if (!hasTags || tagsMatch(tags, (NativeWeakMap ? priv.get(listener) : listener)._tags)) {
 
-            var listener = evListeners[ii];
-
-            if (!hasTags || tagsMatch(tags, (NativeWeakMap ? priv.get(listener) : listener)._tags)) {
-
-              if (hasContext) {
-                listener.emit(args, context);
-              }
-              else {
-                listener.emit(args);
-              }
-
+            if (hasContext) {
+              listener.emit(args, context);
+            }
+            else {
+              listener.emit(args);
             }
 
           }
@@ -342,12 +323,14 @@ TODO
     var ret = [];
     var eventCount = 0;
 
-    events = events || this.getEvents();
+    events = parseEvents(events || this.getEvents());
 
-    forEachEvent(events, function (event, tags) {
+    for (var i = 0, len = events.length; i < len; i++) {
 
       ++eventCount;
 
+      var event = events[i][0];
+      var tags = events[i][1];
       var evListeners = listeners[event];
       var evListenersLength = evListeners.length;
 
@@ -360,9 +343,9 @@ TODO
         }
         else {
 
-          for (var i = 0; i < evListenersLength; i++) {
+          for (var ii = 0; ii < evListenersLength; ii++) {
 
-            var listener = evListeners[i];
+            var listener = evListeners[ii];
             var listenerData = NativeWeakMap ? priv.get(listener) : listener;
 
             if (tagsMatch(tags, listenerData._tags)) {
@@ -377,7 +360,7 @@ TODO
 
       }
 
-    });
+    }
 
     return eventCount > 1 && ret.length > 1 ? uniqListeners(ret).sort(compareListeners) : ret;
 
@@ -487,27 +470,19 @@ TODO
       var ctx = arguments.length > 1 ? context : listenerData._context;
       var argsLength = args ? args.length : 0;
 
-      if (ctx === void 0 && argsLength < 6) {
+      if (!argsLength) {
 
-        if (!argsLength) {
-
-          fn();
-
-        }
-        else {
-
-          argsLength == 1 ? fn(args[0]) :
-          argsLength == 2 ? fn(args[0], args[1]) :
-          argsLength == 3 ? fn(args[0], args[1], args[2]) :
-          argsLength == 4 ? fn(args[0], args[1], args[2], args[3]) :
-                            fn(args[0], args[1], args[2], args[3], args[4]);
-
-        }
+        fn.call(ctx);
 
       }
       else {
 
-        argsLength ? fn.apply(ctx, args.concat()) : fn.call(ctx);
+        argsLength == 1 ? fn.call(ctx, args[0]) :
+        argsLength == 2 ? fn.call(ctx, args[0], args[1]) :
+        argsLength == 3 ? fn.call(ctx, args[0], args[1], args[2]) :
+        argsLength == 4 ? fn.call(ctx, args[0], args[1], args[2], args[3]) :
+        argsLength == 5 ? fn.call(ctx, args[0], args[1], args[2], args[3], args[4]) :
+                          fn.apply(ctx, args.concat());
 
       }
 
@@ -594,7 +569,7 @@ TODO
   };
 
   /**
-   * Sanitize events query.
+   * Sanitize events data.
    *
    * @private
    * @param {Array|String} events
@@ -602,20 +577,9 @@ TODO
    */
   function parseEvents(events) {
 
-    return typeof events === 'string' ? events.split(eventDelimiter) : events;
+    var ret = [];
 
-  }
-
-  /**
-   * Parse event query and loop over each event.
-   *
-   * @private
-   * @param {Array|String} events
-   * @param {Function} callback
-   */
-  function forEachEvent(events, callback) {
-
-    events = parseEvents(events);
+    events = typeof events === 'string' ? events.split(eventDelimiter) : events;
 
     for (var i = 0, len = events.length; i < len; i++) {
 
@@ -624,11 +588,13 @@ TODO
 
       if (eventName) {
 
-        callback(eventName, eventTags);
+        ret.push([eventName, eventTags]);
 
       }
 
     }
+
+    return ret;
 
   }
 
