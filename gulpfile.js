@@ -5,8 +5,9 @@ var karma = require('karma');
 var uglify = require('gulp-uglify');
 var rename = require('gulp-rename');
 var size = require('gulp-size');
+var runSequence = require('run-sequence');
 var argv = require('yargs').argv;
-var fileExists = function (filePath){
+var fileExists = function (filePath) {
   try {
     return fs.statSync(filePath).isFile();
   } catch (err) {
@@ -66,6 +67,20 @@ gulp.task('test-local', function (done) {
 
 });
 
+gulp.task('test-node', function (done) {
+
+  var mocha = require('mocha');
+  var m = new mocha({
+    ui: 'qunit'
+  });
+
+  m.addFile('./tests/tests.js');
+  m.run(function (failures) {
+    done(failures);
+  });
+
+});
+
 gulp.task('test-sauce', function (done) {
 
   var opts = {
@@ -89,4 +104,8 @@ gulp.task('test-sauce', function (done) {
 
 });
 
-gulp.task('default', ['validate', 'test-sauce']);
+gulp.task('default', function (done) {
+
+  runSequence('validate', 'test-node', 'test-sauce', done);
+
+});

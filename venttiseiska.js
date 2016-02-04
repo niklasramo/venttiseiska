@@ -35,7 +35,7 @@
 
   }
 
-}(typeof window === 'object' && window.window || this, function (glob, undefined) {
+}(typeof window === 'object' && window.window || global, function (glob, undefined) {
 
   'use strict';
 
@@ -477,12 +477,12 @@
       }
       else {
 
-        argsLength == 1 ? fn.call(ctx, args[0]) :
-        argsLength == 2 ? fn.call(ctx, args[0], args[1]) :
-        argsLength == 3 ? fn.call(ctx, args[0], args[1], args[2]) :
-        argsLength == 4 ? fn.call(ctx, args[0], args[1], args[2], args[3]) :
-        argsLength == 5 ? fn.call(ctx, args[0], args[1], args[2], args[3], args[4]) :
-                          fn.apply(ctx, args.concat());
+        argsLength === 1 ? fn.call(ctx, args[0]) :
+        argsLength === 2 ? fn.call(ctx, args[0], args[1]) :
+        argsLength === 3 ? fn.call(ctx, args[0], args[1], args[2]) :
+        argsLength === 4 ? fn.call(ctx, args[0], args[1], args[2], args[3]) :
+        argsLength === 5 ? fn.call(ctx, args[0], args[1], args[2], args[3], args[4]) :
+                           fn.apply(ctx, args.concat());
 
       }
 
@@ -578,6 +578,7 @@
   function parseEvents(events) {
 
     var ret = [];
+    var retIndex = 0;
 
     events = typeof events === 'string' ? events.split(eventDelimiter) : events;
 
@@ -588,7 +589,7 @@
 
       if (eventName) {
 
-        ret.push([eventName, eventTags]);
+        ret[retIndex++] = [eventName, eventTags];
 
       }
 

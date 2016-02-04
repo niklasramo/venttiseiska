@@ -1,12 +1,61 @@
-(function (Q, glob) {
+(function (global, factory) {
 
-  QUnit.config.reorder = false;
+  if (typeof module === 'object' && module.exports) {
 
-  QUnit.module('emitter.on()');
+    var QUnit = {
+      config: {},
+      module: global.suite,
+      test: global.test,
+      assert: require('assert')
+    };
+
+    factory(global, QUnit, require('../venttiseiska.js'), true);
+
+  }
+  else {
+
+    factory(global, global.QUnit, Venttiseiska);
+
+  }
+
+}(typeof window === 'object' && window.window || global, function (glob, Q, Venttiseiska, isNode) {
+
+  function normalizeAssert(assert) {
+
+    if (isNode) {
+
+      return {
+        assert: Q.assert,
+        done: assert,
+        expect: function (val) {
+          // TODO: https://github.com/mochajs/mocha/wiki/Assertion-counting
+        }
+      };
+
+    }
+    else {
+
+      return {
+        assert: assert,
+        done: assert.async(),
+        expect: function (val) {
+          assert.expect(val);
+        }
+      };
+
+    }
+
+  }
+
+  Q.config.reorder = false;
+
+  Q.module('emitter.on()');
 
   Q.test('should instantiate and return an array of listener objects', function (assert) {
 
-    assert.expect(12);
+    var test = normalizeAssert(assert);
+
+    test.expect(12);
 
     var emitter = new Venttiseiska();
     var retSingleA = emitter.on('a', function () {});
@@ -16,42 +65,50 @@
     var combined = retSingleA.concat(retSingleB).concat(retMultiA).concat(retMultiB);
 
     // Make sure all return values are arrays.
-    assert.strictEqual(retSingleA instanceof Array, true);
-    assert.strictEqual(retSingleB instanceof Array, true);
-    assert.strictEqual(retMultiA instanceof Array, true);
-    assert.strictEqual(retMultiB instanceof Array, true);
+    test.assert.strictEqual(retSingleA instanceof Array, true);
+    test.assert.strictEqual(retSingleB instanceof Array, true);
+    test.assert.strictEqual(retMultiA instanceof Array, true);
+    test.assert.strictEqual(retMultiB instanceof Array, true);
 
     // Make sure all items in the arrays are instances of Venttiseiska.Listener.
     combined.forEach(function (item) {
-      assert.strictEqual(item instanceof Venttiseiska.Listener, true);
+      test.assert.strictEqual(item instanceof Venttiseiska.Listener, true);
     });
+
+    test.done();
 
   });
 
   Q.test('should instantiate listeners with correct default values', function (assert) {
 
-    assert.expect(10);
+    var test = normalizeAssert(assert);
+
+    test.expect(10);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {};
     var listener = emitter.on('a', listenerFn)[0].inspect();
 
-    assert.strictEqual(typeof listener.id, 'number');
-    assert.strictEqual(listener.emitter, emitter);
-    assert.strictEqual(listener.event, 'a');
-    assert.strictEqual(listener.fn, listenerFn);
-    assert.strictEqual(listener.tags instanceof Array, true);
-    assert.strictEqual(listener.tags.length, 0);
-    assert.strictEqual(listener.context, undefined);
-    assert.strictEqual(listener.cycles, 0);
-    assert.strictEqual(listener.active, true);
-    assert.strictEqual(listener.bound, true);
+    test.assert.strictEqual(typeof listener.id, 'number');
+    test.assert.strictEqual(listener.emitter, emitter);
+    test.assert.strictEqual(listener.event, 'a');
+    test.assert.strictEqual(listener.fn, listenerFn);
+    test.assert.strictEqual(listener.tags instanceof Array, true);
+    test.assert.strictEqual(listener.tags.length, 0);
+    test.assert.strictEqual(listener.context, undefined);
+    test.assert.strictEqual(listener.cycles, 0);
+    test.assert.strictEqual(listener.active, true);
+    test.assert.strictEqual(listener.bound, true);
+
+    test.done();
 
   });
 
   Q.test('should pass tags to listeners', function (assert) {
 
-    assert.expect(4);
+    var test = normalizeAssert(assert);
+
+    test.expect(4);
 
     var emitter = new Venttiseiska();
     var retA = emitter.on('a:tagA b:tagA:tagB', function () {});
@@ -61,18 +118,22 @@
     combined.forEach(function (listener, i) {
       var tags = listener.inspect().tags;
       if (i == 0 || i == 2) {
-        assert.deepEqual(tags, ['tagA']);
+        test.assert.deepEqual(tags, ['tagA']);
       }
       else {
-        assert.deepEqual(tags, ['tagA', 'tagB']);
+        test.assert.deepEqual(tags, ['tagA', 'tagB']);
       }
     });
+
+    test.done();
 
   });
 
   Q.test('should pass context to listeners', function (assert) {
 
-    assert.expect(3);
+    var test = normalizeAssert(assert);
+
+    test.expect(3);
 
     var emitter = new Venttiseiska();
     var ctx = {};
@@ -86,14 +147,18 @@
     var combined = retA.concat(retB).concat(retC);
 
     combined.forEach(function (listener, i) {
-      assert.strictEqual(listener.inspect().context, ctx);
+      test.assert.strictEqual(listener.inspect().context, ctx);
     });
+
+    test.done();
 
   });
 
   Q.test('should pass cycles to listeners', function (assert) {
 
-    assert.expect(1);
+    var test = normalizeAssert(assert);
+
+    test.expect(1);
 
     var emitter = new Venttiseiska();
     var listener = emitter.on({
@@ -102,15 +167,19 @@
       cycles: 5
     })[0];
 
-    assert.strictEqual(listener.inspect().cycles, 5);
+    test.assert.strictEqual(listener.inspect().cycles, 5);
+
+    test.done();
 
   });
 
-  QUnit.module('emitter.once()');
+  Q.module('emitter.once()');
 
   Q.test('should instantiate and return an array of listener objects', function (assert) {
 
-    assert.expect(12);
+    var test = normalizeAssert(assert);
+
+    test.expect(12);
 
     var emitter = new Venttiseiska();
     var retSingleA = emitter.once('a', function () {});
@@ -120,42 +189,50 @@
     var combined = retSingleA.concat(retSingleB).concat(retMultiA).concat(retMultiB);
 
     // Make sure all return values are arrays.
-    assert.strictEqual(retSingleA instanceof Array, true);
-    assert.strictEqual(retSingleB instanceof Array, true);
-    assert.strictEqual(retMultiA instanceof Array, true);
-    assert.strictEqual(retMultiB instanceof Array, true);
+    test.assert.strictEqual(retSingleA instanceof Array, true);
+    test.assert.strictEqual(retSingleB instanceof Array, true);
+    test.assert.strictEqual(retMultiA instanceof Array, true);
+    test.assert.strictEqual(retMultiB instanceof Array, true);
 
     // Make sure all items in the arrays are instances of Venttiseiska.Listener.
     combined.forEach(function (item) {
-      assert.strictEqual(item instanceof Venttiseiska.Listener, true);
+      test.assert.strictEqual(item instanceof Venttiseiska.Listener, true);
     });
+
+    test.done();
 
   });
 
   Q.test('should instantiate listeners with correct default values', function (assert) {
 
-    assert.expect(10);
+    var test = normalizeAssert(assert);
+
+    test.expect(10);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {};
     var listener = emitter.once('a', listenerFn)[0].inspect();
 
-    assert.strictEqual(typeof listener.id, 'number');
-    assert.strictEqual(listener.emitter, emitter);
-    assert.strictEqual(listener.event, 'a');
-    assert.strictEqual(listener.fn, listenerFn);
-    assert.strictEqual(listener.tags instanceof Array, true);
-    assert.strictEqual(listener.tags.length, 0);
-    assert.strictEqual(listener.context, undefined);
-    assert.strictEqual(listener.cycles, 1);
-    assert.strictEqual(listener.active, true);
-    assert.strictEqual(listener.bound, true);
+    test.assert.strictEqual(typeof listener.id, 'number');
+    test.assert.strictEqual(listener.emitter, emitter);
+    test.assert.strictEqual(listener.event, 'a');
+    test.assert.strictEqual(listener.fn, listenerFn);
+    test.assert.strictEqual(listener.tags instanceof Array, true);
+    test.assert.strictEqual(listener.tags.length, 0);
+    test.assert.strictEqual(listener.context, undefined);
+    test.assert.strictEqual(listener.cycles, 1);
+    test.assert.strictEqual(listener.active, true);
+    test.assert.strictEqual(listener.bound, true);
+
+    test.done();
 
   });
 
   Q.test('should pass tags to listeners', function (assert) {
 
-    assert.expect(4);
+    var test = normalizeAssert(assert);
+
+    test.expect(4);
 
     var emitter = new Venttiseiska();
     var retA = emitter.once('a:tagA b:tagA:tagB', function () {});
@@ -165,18 +242,22 @@
     combined.forEach(function (listener, i) {
       var tags = listener.inspect().tags;
       if (i == 0 || i == 2) {
-        assert.deepEqual(tags, ['tagA']);
+        test.assert.deepEqual(tags, ['tagA']);
       }
       else {
-        assert.deepEqual(tags, ['tagA', 'tagB']);
+        test.assert.deepEqual(tags, ['tagA', 'tagB']);
       }
     });
+
+    test.done();
 
   });
 
   Q.test('should pass context to listeners', function (assert) {
 
-    assert.expect(3);
+    var test = normalizeAssert(assert);
+
+    test.expect(3);
 
     var emitter = new Venttiseiska();
     var ctx = {};
@@ -190,38 +271,50 @@
     var combined = retA.concat(retB).concat(retC);
 
     combined.forEach(function (listener, i) {
-      assert.strictEqual(listener.inspect().context, ctx);
+      test.assert.strictEqual(listener.inspect().context, ctx);
     });
+
+    test.done();
 
   });
 
-  QUnit.module('emitter.off()');
+  Q.module('emitter.off()');
 
   Q.test('should return undefined', function (assert) {
 
-    assert.expect(1);
+    var test = normalizeAssert(assert);
+
+    test.expect(1);
 
     var emitter = new Venttiseiska();
 
-    assert.strictEqual(emitter.off(), undefined);
+    test.assert.strictEqual(emitter.off(), undefined);
+
+    test.done();
 
   });
 
   Q.test('should unbind all listeners', function (assert) {
 
-    assert.expect(1);
+    var test = normalizeAssert(assert);
+
+    test.expect(1);
 
     var emitter = new Venttiseiska();
     emitter.on('a a a b b b c c c', function () {});
     emitter.off();
 
-    assert.strictEqual(emitter.getListeners().length, 0);
+    test.assert.strictEqual(emitter.getListeners().length, 0);
+
+    test.done();
 
   });
 
   Q.test('should unbind listeners by event', function (assert) {
 
-    assert.expect(4);
+    var test = normalizeAssert(assert);
+
+    test.expect(4);
 
     var emitter = new Venttiseiska();
 
@@ -229,14 +322,18 @@
     emitter.off('b');
 
     emitter.getListeners().forEach(function (listener) {
-      assert.notStrictEqual(listener.inspect().event, 'b');
+      test.assert.notStrictEqual(listener.inspect().event, 'b');
     });
+
+    test.done();
 
   });
 
   Q.test('should unbind listeners by event and tags', function (assert) {
 
-    assert.expect(3);
+    var test = normalizeAssert(assert);
+
+    test.expect(3);
 
     var emitter = new Venttiseiska();
 
@@ -244,14 +341,18 @@
     emitter.off('a:tagA b:tagA c:tagA:tagC');
 
     emitter.getListeners().forEach(function (listener) {
-      assert.strictEqual(listener.inspect().tags.length, 0);
+      test.assert.strictEqual(listener.inspect().tags.length, 0);
     });
+
+    test.done();
 
   });
 
   Q.test('should unbind listeners by event and function', function (assert) {
 
-    assert.expect(3);
+    var test = normalizeAssert(assert);
+
+    test.expect(3);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {};
@@ -262,14 +363,18 @@
     emitter.off('a b c', listenerFn2);
 
     emitter.getListeners().forEach(function (listener) {
-      assert.strictEqual(listener.inspect().fn, listenerFn);
+      test.assert.strictEqual(listener.inspect().fn, listenerFn);
     });
+
+    test.done();
 
   });
 
   Q.test('should unbind listeners by event and id', function (assert) {
 
-    assert.expect(5);
+    var test = normalizeAssert(assert);
+
+    test.expect(5);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {};
@@ -278,14 +383,18 @@
     emitter.off('a', id);
 
     emitter.getListeners().forEach(function (listener) {
-      assert.notStrictEqual(listener.inspect().id, id);
+      test.assert.notStrictEqual(listener.inspect().id, id);
     });
+
+    test.done();
 
   });
 
   Q.test('should unbind listeners by event, tags and function', function (assert) {
 
-    assert.expect(1);
+    var test = normalizeAssert(assert);
+
+    test.expect(1);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {};
@@ -295,63 +404,79 @@
     emitter.on('a:tagA a:tagB a:tagC', listenerFn2);
     emitter.off('a:tagA a:tagB a:tagC', listenerFn2);
 
-    assert.deepEqual(emitter.getListeners(), ret);
+    test.assert.deepEqual(emitter.getListeners(), ret);
+
+    test.done();
 
   });
 
-  QUnit.module('emitter.emit()');
+  Q.module('emitter.emit()');
 
   Q.test('should return undefined', function (assert) {
 
-    assert.expect(1);
+    var test = normalizeAssert(assert);
+
+    test.expect(1);
 
     var emitter = new Venttiseiska();
 
-    assert.strictEqual(emitter.emit('a'), undefined);
+    test.assert.strictEqual(emitter.emit('a'), undefined);
+
+    test.done();
 
   });
 
   Q.test('should invoke the targeted listeners', function (assert) {
 
-    assert.expect(1);
+    var test = normalizeAssert(assert);
+
+    test.expect(1);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {
-      assert.ok(true);
+      test.assert.ok(true);
     };
 
     emitter.on('a', listenerFn);
     emitter.emit('a');
 
+    test.done();
+
   });
 
   Q.test('should pass arguments to the listener\'s callback', function (assert) {
 
-    assert.expect(10);
+    var test = normalizeAssert(assert);
+
+    test.expect(10);
 
     var emitter = new Venttiseiska();
     var args = [[], {}, '', 'hello', 1, 0, true, false, undefined, null];
     var listenerFn = function () {
       Array.prototype.slice.call(arguments).forEach(function (val, i) {
-        assert.strictEqual(val, args[i]);
+        test.assert.strictEqual(val, args[i]);
       });
     };
 
     emitter.on('a', listenerFn);
     emitter.emit('a', args);
 
+    test.done();
+
   });
 
   Q.test('should temporarily force context to the listener\'s callback', function (assert) {
 
-    assert.expect(4);
+    var test = normalizeAssert(assert);
+
+    test.expect(4);
 
     var emitter = new Venttiseiska();
     var listenerCtx = {};
     var emitCtx = {};
     var counter = 0;
     var listenerFn = function () {
-      assert.strictEqual(this, counter < 2 ? emitCtx : counter === 2 ? glob : listenerCtx);
+      test.assert.strictEqual(this, counter < 2 ? emitCtx : counter === 2 ? glob : listenerCtx);
       ++counter;
     };
 
@@ -360,25 +485,33 @@
     emitter.emit('a b', [], emitCtx);
     emitter.emit('a b');
 
+    test.done();
+
   });
 
-  QUnit.module('emitter.getListeners()');
+  Q.module('emitter.getListeners()');
 
   Q.test('should return all listeners in bind order', function (assert) {
 
-    assert.expect(1);
+    var test = normalizeAssert(assert);
+
+    test.expect(1);
 
     var emitter = new Venttiseiska();
     var expected = emitter.on('a b c a b c a b c', function () {});
     var val = emitter.getListeners();
 
-    assert.deepEqual(val, expected);
+    test.assert.deepEqual(val, expected);
+
+    test.done();
 
   });
 
   Q.test('should return listeners of specific events (optionally filtered by tags) in bind order', function (assert) {
 
-    assert.expect(2);
+    var test = normalizeAssert(assert);
+
+    test.expect(2);
 
     var emitter = new Venttiseiska();
     var listeners = emitter.on('a b:tagA c:tagA:tagB a b c:tagA a b c:tagB', function () {});
@@ -390,103 +523,131 @@
              (ev === 'c' && tags[0] === 'tagA' && tags[1] === 'tagB');
     });
 
-    assert.deepEqual(emitter.getListeners('a b:tagA c:tagA:tagB'), expected);
-    assert.deepEqual(emitter.getListeners(['a', 'b:tagA' ,'c:tagA:tagB']), expected);
+    test.assert.deepEqual(emitter.getListeners('a b:tagA c:tagA:tagB'), expected);
+    test.assert.deepEqual(emitter.getListeners(['a', 'b:tagA' ,'c:tagA:tagB']), expected);
+
+    test.done();
 
   });
 
-  QUnit.module('emitter.getEvents()');
+  Q.module('emitter.getEvents()');
 
   Q.test('should return all events which have listeners', function (assert) {
 
-    assert.expect(2);
+    var test = normalizeAssert(assert);
+
+    test.expect(2);
 
     var emitter = new Venttiseiska();
 
     emitter.on('a b c', function () {});
-    assert.deepEqual(emitter.getEvents(), ['a', 'b', 'c']);
+    test.assert.deepEqual(emitter.getEvents(), ['a', 'b', 'c']);
 
     emitter.off('a');
-    assert.deepEqual(emitter.getEvents(), ['b', 'c']);
+    test.assert.deepEqual(emitter.getEvents(), ['b', 'c']);
+
+    test.done();
 
   });
 
-  QUnit.module('listener');
+  Q.module('listener');
 
   Q.test('should instantiate a listener', function (assert) {
 
-    assert.expect(1);
+    var test = normalizeAssert(assert);
+
+    test.expect(1);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {};
     var listener = new Venttiseiska.Listener(emitter, 'a', listenerFn);
 
-    assert.strictEqual(listener, emitter.getListeners()[0]);
+    test.assert.strictEqual(listener, emitter.getListeners()[0]);
+
+    test.done();
 
   });
 
   Q.test('should instantiate listener with correct default values', function (assert) {
 
-    assert.expect(10);
+    var test = normalizeAssert(assert);
+
+    test.expect(10);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {};
     var listener = (new Venttiseiska.Listener(emitter, 'a', listenerFn)).inspect();
 
-    assert.strictEqual(typeof listener.id, 'number');
-    assert.strictEqual(listener.emitter, emitter);
-    assert.strictEqual(listener.event, 'a');
-    assert.strictEqual(listener.fn, listenerFn);
-    assert.strictEqual(listener.tags instanceof Array, true);
-    assert.strictEqual(listener.tags.length, 0);
-    assert.strictEqual(listener.context, undefined);
-    assert.strictEqual(listener.cycles, 0);
-    assert.strictEqual(listener.active, true);
-    assert.strictEqual(listener.bound, true);
+    test.assert.strictEqual(typeof listener.id, 'number');
+    test.assert.strictEqual(listener.emitter, emitter);
+    test.assert.strictEqual(listener.event, 'a');
+    test.assert.strictEqual(listener.fn, listenerFn);
+    test.assert.strictEqual(listener.tags instanceof Array, true);
+    test.assert.strictEqual(listener.tags.length, 0);
+    test.assert.strictEqual(listener.context, undefined);
+    test.assert.strictEqual(listener.cycles, 0);
+    test.assert.strictEqual(listener.active, true);
+    test.assert.strictEqual(listener.bound, true);
+
+    test.done();
 
   });
 
   Q.test('should accept tags as the fourth argument', function (assert) {
 
-    assert.expect(1);
+    var test = normalizeAssert(assert);
+
+    test.expect(1);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {};
     var listenerTags = ['a', 'b'];
     var listener = new Venttiseiska.Listener(emitter, 'a', listenerFn, listenerTags);
 
-    assert.deepEqual(listener.inspect().tags, listenerTags);
+    test.assert.deepEqual(listener.inspect().tags, listenerTags);
+
+    test.done();
 
   });
 
   Q.test('should accept context as the fifth argument', function (assert) {
 
-    assert.expect(1);
+    var test = normalizeAssert(assert);
+
+    test.expect(1);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {};
     var listenerCtx = {};
     var listener = new Venttiseiska.Listener(emitter, 'a', listenerFn, null, listenerCtx);
 
-    assert.strictEqual(listener.inspect().context, listenerCtx);
+    test.assert.strictEqual(listener.inspect().context, listenerCtx);
+
+    test.done();
 
   });
 
   Q.test('should accept cycles as the sixth argument', function (assert) {
 
-    assert.expect(1);
+    var test = normalizeAssert(assert);
+
+    test.expect(1);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {};
     var listener = new Venttiseiska.Listener(emitter, 'a', listenerFn, null, undefined, 5);
 
-    assert.strictEqual(listener.inspect().cycles, 5);
+    test.assert.strictEqual(listener.inspect().cycles, 5);
+
+    test.done();
 
   });
 
   Q.test('should accept configuration object as the first argument', function (assert) {
 
-    assert.expect(9);
+    var test = normalizeAssert(assert);
+
+    test.expect(9);
 
     var emitter = new Venttiseiska();
     var listenerEvent = 'a';
@@ -502,21 +663,25 @@
       cycles: 5
     })).inspect();
 
-    assert.strictEqual(typeof listener.id, 'number');
-    assert.strictEqual(listener.emitter, emitter);
-    assert.strictEqual(listener.event, listenerEvent);
-    assert.strictEqual(listener.fn, listenerFn);
-    assert.deepEqual(listener.tags, listenerTags);
-    assert.strictEqual(listener.context, listenerCtx);
-    assert.strictEqual(listener.cycles, 5);
-    assert.strictEqual(listener.active, true);
-    assert.strictEqual(listener.bound, true);
+    test.assert.strictEqual(typeof listener.id, 'number');
+    test.assert.strictEqual(listener.emitter, emitter);
+    test.assert.strictEqual(listener.event, listenerEvent);
+    test.assert.strictEqual(listener.fn, listenerFn);
+    test.assert.deepEqual(listener.tags, listenerTags);
+    test.assert.strictEqual(listener.context, listenerCtx);
+    test.assert.strictEqual(listener.cycles, 5);
+    test.assert.strictEqual(listener.active, true);
+    test.assert.strictEqual(listener.bound, true);
+
+    test.done();
 
   });
 
   Q.test('should unbind itself after cycles are depleted', function (assert) {
 
-    assert.expect(2);
+    var test = normalizeAssert(assert);
+
+    test.expect(2);
 
     var emitter = new Venttiseiska();
     var listenerEvent = 'a';
@@ -535,33 +700,41 @@
     listener.emit().emit();
 
     // Should be unbound after two times.
-    assert.strictEqual(listener.inspect().bound, false);
+    test.assert.strictEqual(listener.inspect().bound, false);
 
     // Emit twice again.
     listener.emit().emit();
 
     // Callback should only have triggered two times in total.
-    assert.strictEqual(counter, 2);
+    test.assert.strictEqual(counter, 2);
+
+    test.done();
 
   });
 
-  QUnit.module('listener.off()');
+  Q.module('listener.off()');
 
   Q.test('should be chainable', function (assert) {
 
-    assert.expect(1);
+    var test = normalizeAssert(assert);
+
+    test.expect(1);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {};
     var listener = new Venttiseiska.Listener(emitter, 'a', listenerFn);
 
-    assert.strictEqual(listener.off(), listener);
+    test.assert.strictEqual(listener.off(), listener);
+
+    test.done();
 
   });
 
   Q.test('should unbind itself', function (assert) {
 
-    assert.expect(2);
+    var test = normalizeAssert(assert);
+
+    test.expect(2);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {};
@@ -569,104 +742,132 @@
 
     listener.off();
 
-    assert.strictEqual(emitter.getListeners().length, 0);
-    assert.strictEqual(listener.inspect().bound, false);
+    test.assert.strictEqual(emitter.getListeners().length, 0);
+    test.assert.strictEqual(listener.inspect().bound, false);
+
+    test.done();
 
   });
 
-  QUnit.module('listener.emit()');
+  Q.module('listener.emit()');
 
   Q.test('should be chainable', function (assert) {
 
-    assert.expect(1);
+    var test = normalizeAssert(assert);
+
+    test.expect(1);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {};
     var listener = new Venttiseiska.Listener(emitter, 'a', listenerFn);
 
-    assert.strictEqual(listener.emit(), listener);
+    test.assert.strictEqual(listener.emit(), listener);
+
+    test.done();
 
   });
 
   Q.test('should invoke the targeted listeners', function (assert) {
 
-    assert.expect(1);
+    var test = normalizeAssert(assert);
+
+    test.expect(1);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {
-      assert.ok(true);
+      test.assert.ok(true);
     };
     var listener = new Venttiseiska.Listener(emitter, 'a', listenerFn);
 
     listener.emit();
 
+    test.done();
+
   });
 
   Q.test('should pass arguments to the listener\'s callback', function (assert) {
 
-    assert.expect(10);
+    var test = normalizeAssert(assert);
+
+    test.expect(10);
 
     var emitter = new Venttiseiska();
     var args = [[], {}, '', 'hello', 1, 0, true, false, undefined, null];
     var listenerFn = function () {
       Array.prototype.slice.call(arguments).forEach(function (val, i) {
-        assert.strictEqual(val, args[i]);
+        test.assert.strictEqual(val, args[i]);
       });
     };
     var listener = new Venttiseiska.Listener(emitter, 'a', listenerFn);
 
     listener.emit(args);
 
+    test.done();
+
   });
 
   Q.test('should temporarily force context to the listener\'s callback', function (assert) {
 
-    assert.expect(2);
+    var test = normalizeAssert(assert);
+
+    test.expect(2);
 
     var emitter = new Venttiseiska();
     var listenerCtx = {};
     var emitCtx = {};
     var listenerFn = function (forcedContext) {
-      assert.strictEqual(this, forcedContext ? emitCtx : listenerCtx);
+      test.assert.strictEqual(this, forcedContext ? emitCtx : listenerCtx);
     };
     var listener = new Venttiseiska.Listener(emitter, 'a', listenerFn, [], listenerCtx);
 
     listener.emit([true], emitCtx);
     listener.emit();
 
+    test.done();
+
   });
 
   Q.test('should not invoke callbacks of inactive listeners', function (assert) {
 
-    assert.expect(0);
+    var test = normalizeAssert(assert);
+
+    test.expect(0);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {
-      assert.strictEqual(1, 0);
+      test.assert.strictEqual(1, 0);
     };
     var listener = new Venttiseiska.Listener(emitter, 'a', listenerFn);
 
     listener.update({active: false}).emit();
 
+    test.done();
+
   });
 
-  QUnit.module('listener.update()');
+  Q.module('listener.update()');
 
   Q.test('should be chainable', function (assert) {
 
-    assert.expect(1);
+    var test = normalizeAssert(assert);
+
+    test.expect(1);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {};
     var listener = new Venttiseiska.Listener(emitter, 'a', listenerFn);
 
-    assert.strictEqual(listener.update(), listener);
+    test.assert.strictEqual(listener.update(), listener);
+
+    test.done();
 
   });
 
   Q.test('should update callback function', function (assert) {
 
-    assert.expect(1);
+    var test = normalizeAssert(assert);
+
+    test.expect(1);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {};
@@ -675,13 +876,17 @@
 
     listener.update({fn: listenerFn2});
 
-    assert.strictEqual(listener.inspect().fn, listenerFn2);
+    test.assert.strictEqual(listener.inspect().fn, listenerFn2);
+
+    test.done();
 
   });
 
   Q.test('should update tags', function (assert) {
 
-    assert.expect(1);
+    var test = normalizeAssert(assert);
+
+    test.expect(1);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {};
@@ -691,13 +896,17 @@
 
     listener.update({tags: listenerTagsB});
 
-    assert.deepEqual(listener.inspect().tags, listenerTagsB);
+    test.assert.deepEqual(listener.inspect().tags, listenerTagsB);
+
+    test.done();
 
   });
 
   Q.test('should update context', function (assert) {
 
-    assert.expect(1);
+    var test = normalizeAssert(assert);
+
+    test.expect(1);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {};
@@ -707,13 +916,17 @@
 
     listener.update({context: listenerCtxB});
 
-    assert.strictEqual(listener.inspect().context, listenerCtxB);
+    test.assert.strictEqual(listener.inspect().context, listenerCtxB);
+
+    test.done();
 
   });
 
   Q.test('should update cycles', function (assert) {
 
-    assert.expect(1);
+    var test = normalizeAssert(assert);
+
+    test.expect(1);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {};
@@ -723,13 +936,17 @@
 
     listener.update({cycles: listenerCyclesB});
 
-    assert.strictEqual(listener.inspect().cycles, listenerCyclesB);
+    test.assert.strictEqual(listener.inspect().cycles, listenerCyclesB);
+
+    test.done();
 
   });
 
   Q.test('should update active state', function (assert) {
 
-    assert.expect(1);
+    var test = normalizeAssert(assert);
+
+    test.expect(1);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {};
@@ -737,13 +954,17 @@
 
     listener.update({active: false});
 
-    assert.strictEqual(listener.inspect().active, false);
+    test.assert.strictEqual(listener.inspect().active, false);
+
+    test.done();
 
   });
 
   Q.test('should not update id', function (assert) {
 
-    assert.expect(1);
+    var test = normalizeAssert(assert);
+
+    test.expect(1);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {};
@@ -752,13 +973,17 @@
 
     listener.update({id: id + 1});
 
-    assert.strictEqual(listener.inspect().id, id);
+    test.assert.strictEqual(listener.inspect().id, id);
+
+    test.done();
 
   });
 
   Q.test('should not update emitter', function (assert) {
 
-    assert.expect(1);
+    var test = normalizeAssert(assert);
+
+    test.expect(1);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {};
@@ -766,13 +991,17 @@
 
     listener.update({emitter: new Venttiseiska()});
 
-    assert.strictEqual(listener.inspect().emitter, emitter);
+    test.assert.strictEqual(listener.inspect().emitter, emitter);
+
+    test.done();
 
   });
 
   Q.test('should not update event', function (assert) {
 
-    assert.expect(1);
+    var test = normalizeAssert(assert);
+
+    test.expect(1);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {};
@@ -780,13 +1009,17 @@
 
     listener.update({event: 'b'});
 
-    assert.strictEqual(listener.inspect().event, 'a');
+    test.assert.strictEqual(listener.inspect().event, 'a');
+
+    test.done();
 
   });
 
   Q.test('should not update bound state', function (assert) {
 
-    assert.expect(1);
+    var test = normalizeAssert(assert);
+
+    test.expect(1);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {};
@@ -794,15 +1027,19 @@
 
     listener.update({bound: false});
 
-    assert.strictEqual(listener.inspect().bound, true);
+    test.assert.strictEqual(listener.inspect().bound, true);
+
+    test.done();
 
   });
 
-  QUnit.module('listener.inspect()');
+  Q.module('listener.inspect()');
 
   Q.test('should return a plain object with correct properties', function (assert) {
 
-    assert.expect(11);
+    var test = normalizeAssert(assert);
+
+    test.expect(11);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {};
@@ -810,23 +1047,27 @@
 
     var inspect = listener.inspect();
 
-    assert.strictEqual(typeof inspect === 'object' && Object.prototype.toString.call(inspect) === '[object Object]', true);
-    assert.strictEqual(typeof inspect.id, 'number');
-    assert.strictEqual(inspect.emitter, emitter);
-    assert.strictEqual(inspect.event, 'a');
-    assert.strictEqual(inspect.fn, listenerFn);
-    assert.strictEqual(inspect.tags instanceof Array, true);
-    assert.strictEqual(inspect.tags.length, 0);
-    assert.strictEqual(inspect.context, undefined);
-    assert.strictEqual(inspect.cycles, 0);
-    assert.strictEqual(inspect.active, true);
-    assert.strictEqual(inspect.bound, true);
+    test.assert.strictEqual(typeof inspect === 'object' && Object.prototype.toString.call(inspect) === '[object Object]', true);
+    test.assert.strictEqual(typeof inspect.id, 'number');
+    test.assert.strictEqual(inspect.emitter, emitter);
+    test.assert.strictEqual(inspect.event, 'a');
+    test.assert.strictEqual(inspect.fn, listenerFn);
+    test.assert.strictEqual(inspect.tags instanceof Array, true);
+    test.assert.strictEqual(inspect.tags.length, 0);
+    test.assert.strictEqual(inspect.context, undefined);
+    test.assert.strictEqual(inspect.cycles, 0);
+    test.assert.strictEqual(inspect.active, true);
+    test.assert.strictEqual(inspect.bound, true);
+
+    test.done();
 
   });
 
   Q.test('should return a clone of the real tags array', function (assert) {
 
-    assert.expect(2);
+    var test = normalizeAssert(assert);
+
+    test.expect(2);
 
     var emitter = new Venttiseiska();
     var listenerFn = function () {};
@@ -835,9 +1076,11 @@
 
     inspect.tags.push('tagA');
 
-    assert.strictEqual(listener.inspect().tags instanceof Array, true);
-    assert.strictEqual(listener.inspect().tags.length, 0);
+    test.assert.strictEqual(listener.inspect().tags instanceof Array, true);
+    test.assert.strictEqual(listener.inspect().tags.length, 0);
+
+    test.done();
 
   });
 
-})(QUnit, this);
+}));
