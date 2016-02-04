@@ -471,6 +471,8 @@ Returns an object that contains the listener's information.
   * A number that defines how many times the listener can be emitted until it is automatically unbound. Defaults to `0`, which means that the *cycles* feature is disabled (in other words the listener has infinite cycles).
 * **active** &nbsp;&mdash;&nbsp; *Boolean*
   * Defines if the listener can be emitted or not.
+* **bound** &nbsp;&mdash;&nbsp; *Boolean*
+  * Is the listener bound? If listener is not bound it means that it has been removed from the event's listeners collection.
 
 **Examples**
 
