@@ -1,6 +1,6 @@
 {
   "name": "venttiseiska",
-  "version": "0.1.0-beta",
+  "version": "0.1.0",
   "description": "A decent event emitter for the browser and Node.js",
   "keywords": [
     "events",

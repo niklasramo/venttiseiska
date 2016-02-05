@@ -1,6 +1,6 @@
 /*!
  * @license
- * Venttiseiska v0.1.0-beta
+ * Venttiseiska v0.1.0
  * https://github.com/niklasramo/venttiseiska
  * Copyright (c) 2016 Niklas Rämö <inramo@gmail.com>
  * Released under the MIT license
