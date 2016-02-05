@@ -8,12 +8,11 @@
 
 (function (glob, factory) {
 
-  var libName = 'Venttiseiska';
-
+  // UMD returnExports pattern.
+  // https://github.com/umdjs/umd/blob/master/templates/returnExports.js
   if (typeof define === 'function' && define.amd) {
 
-    // AMD. Register as an anonymous module.
-    define(libName, [], function () {
+    define([], function () {
 
       return factory(glob);
 
@@ -22,20 +21,16 @@
   }
   else if (typeof module === 'object' && module.exports) {
 
-    // Node. Does not work with strict CommonJS, but
-    // only CommonJS-like environments that support module.exports,
-    // like Node.
     module.exports = factory(glob);
 
   }
   else {
 
-    // Browser globals
-    glob[libName] = factory(glob);
+    glob['Venttiseiska'] = factory(glob);
 
   }
 
-}(typeof window === 'object' && window.window || global, function (glob, undefined) {
+}(this, function (glob, undefined) {
 
   'use strict';
 

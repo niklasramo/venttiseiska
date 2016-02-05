@@ -1,6 +1,28 @@
 # Venttiseiska
 
-The good 'ol event emitter pattern with a few handy extras and sugary sweet API. If you're looking for the tiniest and fastest event emitter implementation keep on looking, this is not it. However, if you need a solid emitter coded in OOP style for maximum extendability where the event listener is a first-class citizen then this might be your cup of tea. No dependencies and works in most browsers (IE9+) and in Node.js too. In case you're wondering, *Venttiseiska* is a Finnish military slang word referring to [AN/PRC-77 Portable Transceiver](https://en.wikipedia.org/wiki/AN/PRC-77_Portable_Transceiver) which is used by the Finnish army, hence the name.
+The good 'ol event emitter pattern with a few handy extras, future facing implementation and a sugary sweet API. If you're looking for the tiniest and fastest event emitter implementation keep on looking, this is not it.
+
+Venttiseiska treats the listener as a first-class citizen that has it's own set of methods and properties. Listeners can be queried and updated at any time allowing you to easily extend the existing functionality if the need should arise. This approach sets some limits to the performance when compared to emitters with more simplistic approach.
+
+Venttiseiska has no dependencies, works in Node.js as well as most browsers (IE9+) and is future-facing (some ES6 features such as WeakMap and WeakSet are used where appropriate with fallbacks to ES5 compatible code).
+
+In case you're wondering, *Venttiseiska* is a Finnish military slang word referring to [AN/PRC-77 Portable Transceiver](https://en.wikipedia.org/wiki/AN/PRC-77_Portable_Transceiver) which is used by the Finnish army, hence the name.
+
+Enjoy, it's MIT licensed.
+
+#### Install
+
+*Browser*
+
+```html
+<script src="venttiseiska.js"></script>
+```
+
+*Node.js*
+
+```javascript
+npm install venttiseiska --save-dev
+```
 
 #### Basic usage
 
