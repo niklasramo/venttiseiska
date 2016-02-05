@@ -10,21 +10,19 @@ In case you're wondering, *Venttiseiska* is a Finnish military slang word referr
 
 Enjoy, it's MIT licensed.
 
-#### Install
+## Install
 
-*Browser*
-
-```html
-<script src="venttiseiska.js"></script>
-```
-
-*Node.js*
-
+Node
 ```javascript
 npm install venttiseiska --save-dev
 ```
 
-#### Basic usage
+Browser
+```html
+<script src='venttiseiska.js'></script>
+```
+
+## Basic usage
 
 ```javascript
 var emitter = new Venttiseiska();
@@ -34,7 +32,7 @@ emitter.emit('someEvent', ['hello']);
 emitter.off('someEvent', listener);
 ```
 
-#### Special features
+## Special features
 
 **#1: Namespaced events (aka event *tags*).**
 
@@ -150,18 +148,6 @@ emitter.emit('a', [], contextB);
 // last emit call was not permanent. You should
 // see "a" again in your console.
 emitter.emit('a');
-```
-
-## Install
-
-Node
-```javascript
-npm install venttiseiska --save-dev
-```
-
-Browser
-```html
-<script src='venttiseiska.js'></script>
 ```
 
 ## API
