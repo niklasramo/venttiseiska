@@ -6,6 +6,7 @@ var uglify = require('gulp-uglify');
 var rename = require('gulp-rename');
 var size = require('gulp-size');
 var runSequence = require('run-sequence');
+var mocha = require('mocha');
 var argv = require('yargs').argv;
 var fileExists = function (filePath) {
   try {
@@ -52,31 +53,31 @@ gulp.task('compress', function() {
 
 gulp.task('test-local', function (done) {
 
-  (new karma.Server({
+  var opts = {
     configFile: __dirname + '/karma.local-conf.js',
     action: 'run'
-  }, function (exitCode) {
-    if (exitCode !== 0) {
-      console.log('Karma has exited with ' + exitCode);
-      process.exit(exitCode);
-    }
-    else {
-      done();
-    }
+  };
+
+  if (argv.reporters) {
+    opts.reporters = argv.reporters.split(',');
+  }
+
+  if (argv.browsers) {
+    opts.browsers = argv.browsers.split(',');
+  }
+
+  (new karma.Server(opts, function (exitCode) {
+    done(exitCode);
   })).start();
 
 });
 
 gulp.task('test-node', function (done) {
 
-  var mocha = require('mocha');
-  var m = new mocha({
-    ui: 'qunit'
-  });
-
+  var m = new mocha({ui: 'qunit'});
   m.addFile('./tests/tests.js');
-  m.run(function (failures) {
-    done(failures);
+  m.run(function (exitCode) {
+    done(exitCode);
   });
 
 });
@@ -88,18 +89,16 @@ gulp.task('test-sauce', function (done) {
     action: 'run'
   };
 
+  if (argv.reporters) {
+    opts.reporters = argv.reporters.split(',');
+  }
+
   if (argv.browsers) {
     opts.browsers = require('./karma.sauce-browsers.js').getBrowsers(argv.browsers);
   }
 
   (new karma.Server(opts, function (exitCode) {
-    if (exitCode !== 0) {
-      console.log('Karma has exited with ' + exitCode);
-      process.exit(exitCode);
-    }
-    else {
-      done();
-    }
+    done(exitCode);
   })).start();
 
 });

@@ -1,5 +1,6 @@
 (function (global, factory) {
 
+  // Node setup.
   if (typeof module === 'object' && module.exports) {
 
     var QUnit = {
@@ -12,6 +13,7 @@
     factory(global, QUnit, require('../venttiseiska.js'), true);
 
   }
+  // Browser setup.
   else {
 
     factory(global, global.QUnit, Venttiseiska);
@@ -444,6 +446,28 @@
 
   });
 
+  Q.test('should invoke the targeted listeners with specific tags', function (assert) {
+
+    var test = normalizeAssert(assert);
+
+    test.expect(2);
+
+    var emitter = new Venttiseiska();
+
+    emitter.on('a a a:tagB a:tagB', function () {
+      test.assert.ok(false);
+    });
+
+    emitter.on('a:tagA a:tagA', function () {
+      test.assert.ok(true);
+    });
+
+    emitter.emit('a:tagA');
+
+    test.done();
+
+  });
+
   Q.test('should pass arguments to the listener\'s callback', function (assert) {
 
     var test = normalizeAssert(assert);
@@ -452,14 +476,14 @@
 
     var emitter = new Venttiseiska();
     var args = [[], {}, '', 'hello', 1, 0, true, false, undefined, null];
-    var listenerFn = function () {
-      Array.prototype.slice.call(arguments).forEach(function (val, i) {
-        test.assert.strictEqual(val, args[i]);
-      });
-    };
 
-    emitter.on('a', listenerFn);
-    emitter.emit('a', args);
+    for (var i = 0; i < args.length; i++) {
+      var thisArgs = args.slice(0, i + 1);
+      emitter.on('a' + i, function () {
+        test.assert.deepEqual(Array.prototype.slice.call(arguments), thisArgs);
+      });
+      emitter.emit('a' + i, thisArgs);
+    }
 
     test.done();
 

@@ -15,7 +15,8 @@ module.exports = function (config) {
     'karma-chrome-launcher',
     'karma-firefox-launcher',
     'karma-ie-launcher',
-    'karma-story-reporter'
+    'karma-story-reporter',
+    'karma-coverage'
   ];
 
   // list of files / patterns to load in the browser
@@ -29,7 +30,16 @@ module.exports = function (config) {
 
   // possible values: 'dots', 'progress', 'story'
   // https://npmjs.org/browse/keyword/karma-reporter
-  stn.reporters = ['story'];
+  stn.reporters = ['dots'];
+
+  stn.preprocessors = {
+    './venttiseiska.js': ['coverage']
+  };
+
+  stn.coverageReporter = {
+    type : 'html',
+    dir : 'coverage/'
+  };
 
   // web server port
   stn.port = 8888;

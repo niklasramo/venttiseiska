@@ -12,7 +12,8 @@ module.exports = function (config) {
   // plugins to use
   stn.plugins = [
     'karma-qunit',
-    'karma-sauce-launcher'
+    'karma-sauce-launcher',
+    'karma-coverage'
   ];
 
   // list of files / patterns to load in the browser
@@ -30,6 +31,15 @@ module.exports = function (config) {
     'dots',
     'saucelabs'
   ];
+
+  stn.preprocessors = {
+    './venttiseiska.js': ['coverage']
+  };
+
+  stn.coverageReporter = {
+    type : 'html',
+    dir : 'coverage/'
+  };
 
   // enable / disable colors in the output (reporters and logs)
   stn.colors = true;
